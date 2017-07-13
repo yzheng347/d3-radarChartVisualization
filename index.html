@@ -168,7 +168,7 @@
 
             var y1  = y.getFullYear() - 0;
             var yy1 = yy.getFullYear() - 0;
-            if ((y1 > parseTime(year).getFullYear() - 3) && (y1 < parseTime(year).getFullYear() + 3)) {
+            if ((y1 > yy1 - 1) && (y1 < yy1 + 1)) {
 
                 var item = []
                 var dd = [];
@@ -221,7 +221,7 @@
             }
         }
 
-        cfg.maxValue = Math.max(cfg.maxValue, d3.max(d, function(i){return d3.max(i.map(function(o){return  Math.sqrt(o.value);}))}));
+        cfg.maxValue = Math.max(cfg.maxValue, d3.max(d, function(i){return d3.max(i.map(function(o){return o.value;}))}));
         var allAxis = (d[0].map(function(i, j){return i.axis}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
@@ -244,7 +244,7 @@
 
         // draw the circles
         for (var j=0; j<cfg.levels; j++){
-            var levelFactor = radius*( Math.sqrt(j+1)/ Math.sqrt(cfg.levels));
+            var levelFactor = radius*((j+1)/cfg.levels);
             g.selectAll(".levels").data(allAxis).enter().append("svg:line")
                                   .attr("x1", function(d, i){return getHorizontalPosition(i, levelFactor);})
                                   .attr("y1", function(d, i){return getVerticalPosition(i, levelFactor);})
@@ -288,8 +288,8 @@
             g.selectAll(".nodes")
                 .data(y, function(j, i){
                     if (j.value != 0)
-                        dataValues.push([getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor),
-                                         getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor)
+                        dataValues.push([getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor),
+                                         getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor)
                                         ]);
                   });
 
@@ -329,19 +329,19 @@
              .data(y).enter()
              .append("svg:circle").attr("class", "radar-chart-serie"+series)
                                   .attr('r', cfg.radius)
-                                  .attr("alt", function(j){return Math.max( Math.sqrt(j.value), 0)})
+                                  .attr("alt", function(j){return Math.max(j.value, 0)})
                                   .attr("cx", function(j, i){
                                       if (j.value != 0) {
                                           dataValues.push([
-                                              getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor),
-                                              getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor)
+                                              getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor),
+                                              getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor)
                                           ]);
-                                          return getHorizontalPosition(i, cfg.w/2, (Math.max( Math.sqrt(j.value), 0)/cfg.maxValue)*cfg.factor);
+                                          return getHorizontalPosition(i, cfg.w/2, (Math.max(j.value, 0)/cfg.maxValue)*cfg.factor);
                                       } else return -5;
                                    })
                                   .attr("cy", function(j, i){
                                       if (j.value != 0)
-                                          return getVerticalPosition(i, cfg.h/2, (Math.max( Math.sqrt(j.value), 0)/cfg.maxValue)*cfg.factor);
+                                          return getVerticalPosition(i, cfg.h/2, (Math.max(j.value, 0)/cfg.maxValue)*cfg.factor);
                                        else return -5;
                                    })
             .attr("data-id", function(j){return j.axis})
@@ -373,3 +373,4 @@
 </script>
 
 </html>
+
