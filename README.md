@@ -1,2 +1,2 @@
-# d3-radarChartVisualization
-Radar chart to visualize video game sales in d3.
+# videoGameSalesVisualization
+Using d3, a Javascript library to visualize video game sales.
