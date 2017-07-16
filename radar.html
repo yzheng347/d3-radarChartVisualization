@@ -3,24 +3,11 @@
 <body>
 
 <noscript><div id="noscript">You need JavaScript enabled to view most of the demos!</div></noscript>
+    <div id = "Dropdown"></div>
 
-
-<table>
-    <tr>
-        <td>
-            <svg width="400" height="450" id="RadarChart" style="display: inline-block"></svg>
-        </td>
-        <td>
-            <svg width="1200" height="450" id="TreemapChart" style="display: inline-block"></svg>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <svg width="1200" height="450" id="LineChart" style="display: inline-block"></svg>
-        </td>
-    </tr>
-</table>
-
+<tr>
+    <div id="chart"></div>
+</tr>
 
 </body>
 
@@ -47,8 +34,8 @@
 
         var cfg = {
             radius: 5,
-            w: 400,
-            h: 400,
+            w: 500,
+            h: 500,
             factor: .9,
             factorLegend: .95,
             levels: 3,
@@ -127,6 +114,8 @@
         select.on("change", function(d) {
             var value = d3.select(this).property("value");
             var index = d3.select(this).property("index");
+
+            showChart(value);
         });
 
     }
@@ -159,9 +148,8 @@
         var allAxis = (genres.map(function(i, j){return i.axis}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-//        d3.select("#RadarChart").remove();
-        var g = d3.select("#RadarChart");
-//        g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
+        d3.select("#chart").select("svg").remove();
+        var g = d3.select("#chart").append("svg").attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
 
         var tooltip;
         function getPosition(i, range, factor, func){
@@ -240,7 +228,7 @@
 
 
     function showselectYear(year) {
-        var g = d3.select("#RadarChart");
+        var g = d3.select("#chart").select("svg");
 
         var text = d3.select("#" + "TselectYear")
         text.remove();
@@ -326,7 +314,7 @@
 
         console.log(chartData)
 
-        drawRadarChart("#RadarChart", chartData);
+        drawRadarChart("#chart", chartData);
 
     }
 
@@ -359,7 +347,7 @@
         var allAxis = (d[0].map(function(i, j){return i.axis}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-        var g = d3.select(id);
+        var g = d3.select(id).select("svg");
         g.selectAll("polygon").remove();
         g.selectAll("circle").remove();
 
@@ -382,8 +370,6 @@
         // draw the polygon
         d.forEach(function(y, x){
             dataValues = [];
-
-            cfg.maxValue = Math.max(0, d3.max(y.map(function(o){return  Math.sqrt(o.value);})));
 
             g.selectAll(".nodes")
                 .data(y, function(j, i){
@@ -432,8 +418,6 @@
 
         // draw all tne nodes
         d.forEach(function(y, x){
-            cfg.maxValue = Math.max(0, d3.max(y.map(function(o){return  Math.sqrt(o.value);})));
-
             g.selectAll(".nodes")
                 .data(y)
                 .enter()
@@ -489,6 +473,17 @@
 
         //Tooltip
         tooltip = g.append('text').style('opacity', 0).style('font-family', 'sans-serif').style('font-size', '13px');
+    }
+
+
+    function showChart (year) {
+        var g = d3.select("#chart").select("svg");
+        g.selectAll("polygon")
+            .transition(200)
+            .style("fill-opacity", 0.1);
+        g.select("#radar-chart-serie" + year).transition(200).style("fill-opacity", .7);
+//        g.select("#radar-chart-serie" + year).style("fill-opacity", .7);
+
     }
 
 
