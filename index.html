@@ -148,6 +148,7 @@
 
 
     function drawChart(year) {
+        var dd = [];
         var ddd = [];
         var year;
 
@@ -168,10 +169,9 @@
 
             var y1  = y.getFullYear() - 0;
             var yy1 = yy.getFullYear() - 0;
-            if ((y1 > yy1 - 1) && (y1 < yy1 + 1)) {
+            if (y1 == yy1) {
 
-                var item = []
-                var dd = [];
+            var item = []
 
                 var yearsales = yearnested_data[i].values;
                 for (var j=0; j<genres.length; j++) {
@@ -186,10 +186,14 @@
                         }
                     dd.push(item)
                 }
-                ddd.push(dd);
+                break;
             }
         }
 
+        ddd.push(dd)
+
+        console.log(dd)
+        console.log(dd.length)
         console.log(ddd)
 
         drawRadarChart("#chart", ddd);

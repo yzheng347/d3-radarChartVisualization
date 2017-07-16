@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>拖拽操作</title>
+</head>
+<body>
+<script src = "http://d3js.org/d3.v4.min.js"></script>
+<script>
+
+    var xxx = 0;
+    var yyy = 0;
+
+    var width =2000,
+            height = 2000;
+    var svg = d3.select("body").append("svg")
+            .attr("width",width)
+            .attr("height",height)
+    var color = d3.scaleOrdinal(d3.schemeCategory20)
+    //定义拖拽函数
+    var drag = d3.drag()
+            .on("end", dragend)
+            .on("drag", dragmove)
+    function dragmove(d){
+
+        xxx = d3.event.x;
+        yyy = d3.event.y;
+
+        console.log(xxx)
+        console.log(yyy)
+
+        d3.select(this)
+//                .attr("cx", d.cx = d3.event.x)
+                .attr("y", function(d) {
+                    if ((d3.event.y >=100) && (d3.event.y <= 300))
+                        return y = d3.event.y;
+                })
+
+        d3.select(this)
+//                .attr("cx", d.cx = d3.event.x)
+                .attr("cy", d.cy = d3.event.y)
+    }
+
+    function dragend(d){
+
+        xxx = d3.event.x;
+        yyy = d3.event.y;
+
+        console.log("end")
+
+        d3.select(this)
+//                .attr("cx", d.cx = d3.event.x)
+                .attr("y", y = d3.event.y)
+
+        d3.select(this)
+//                .attr("cx", d.cx = d3.event.x)
+                .attr("cy", d.cy = d3.event.y)
+    }
+
+    svg.append("rect")
+        .attr("x", 50)
+        .attr("y", 200)
+        .attr("width", 50)
+        .attr("height", 50)
+        .attr("fill", color)
+        .call(drag)
+        .append("text")
+            .attr("x", 70)
+            .attr("y", 220)
+            .attr("font-size", 12)
+            .attr("dy", "1em")
+            .attr("fill", "black")
+            .text("R");
+
+
+    //绘制圆形
+    var circles =[{cx:150,cy:200,r:30},
+        {cx:250,cy:200,r:30}]
+    svg.selectAll("circle")
+            .data(circles)
+            .enter()
+            .append("circle")
+            .attr("cx",function(d){return d.cx})
+            .attr("cy",function(d){return d.cy})
+            .attr("r", function (d) {
+                return d.r
+            })
+            .attr("fill",color)
+            .call(drag);
+
+
+//    function dragmove(d) {
+//        var x = d3.event.x;
+//        var y = d3.event.y;
+//        d3.select(this).attr("transform", "translate(" + x + "," + y + ")");
+//    }
+
+</script>
+</body>
+</html>
