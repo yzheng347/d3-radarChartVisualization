@@ -8,9 +8,7 @@
 <tr>
     <div id="chart"></div>
 </tr>
-<tr>
-    <div id="yearaxis"></div>
-</tr>
+
 </body>
 
 <script src="http://d3js.org/d3.v4.min.js"></script>
@@ -20,33 +18,33 @@
 
     var parseTime = d3.timeParse("%Y");
 
-    var d = [
-              [
-               {axis: "strength", value: 13},
-               {axis: "intelligence", value: 1},
-               {axis: "charisma", value: 8},
-               {axis: "dexterity", value: 4},
-               {axis: "luck", value: 9}
-              ],[
-               {axis: "strength", value: 3},
-               {axis: "intelligence", value: 15},
-               {axis: "charisma", value: 4},
-               {axis: "dexterity", value: 1},
-               {axis: "luck", value: 15}
-              ],[
-               {axis: "strength", value: 5},
-               {axis: "intelligence", value: 1},
-               {axis: "charisma", value: 16},
-               {axis: "dexterity", value: 10},
-               {axis: "luck", value: 5}
-              ]
-            ];
-
-
     var sales_data;
     var genres = [];
     var genrenested_data = [];
     var yearnested_data = [];
+
+    var minYear;
+    var maxYear;
+    var selectYear
+
+    var drag = d3.drag()
+            .on("end", dragend)
+            .on("drag", dragmove)
+
+
+        var cfg = {
+            radius: 5,
+            w: 500,
+            h: 500,
+            factor: .9,
+            factorLegend: .95,
+            levels: 3,
+            maxValue: 0,
+            radians: 2 * Math.PI,
+            opacityArea: .5,
+            color: d3.scaleOrdinal(d3.schemeCategory20),
+            fontSize: 10
+        };
 
     // load data
     var q = d3.queue()
@@ -65,10 +63,7 @@
                       return d.Year != 'N/A';
                   })
 
-        sales_data.forEach(function(d){
-//                      d.Year = parseTime(d.Year.toString());
-                      d.Global_Sales = d.Global_Sales - 0;
-                  })
+        sales_data.forEach(function(d){ d.Global_Sales = d.Global_Sales - 0; })
 
         console.log(sales_data)
 
@@ -99,25 +94,13 @@
 
         console.log(yearnested_data)
 
-        var minYear = yearnested_data[0].key;
-        var maxYear = yearnested_data[yearnested_data.length - 1].key;
+        minYear = yearnested_data[0].key;
+        maxYear = yearnested_data[yearnested_data.length - 1].key;
 
         console.log(minYear)
         console.log(maxYear)
 
-
-
-
-        var g = d3.select(yearaxis).append("svgaxis").attr("width", 650).attr("height", 20).append("g");
-
-        g.append("line")
-            .attr("x1", 10)
-            .attr("y1", 10)
-            .attr("x2", 610)
-            .attr("y2", 10)
-            .attr("class", "line").style("stroke", "grey").style("stroke-width", "1px");
-
-
+        drawRadar();
 
         var select = d3.select("#Dropdown").append("select")
 
@@ -132,105 +115,41 @@
             var value = d3.select(this).property("value");
             var index = d3.select(this).property("index");
 
-            drawChart(value);
+            showChart(value);
         });
 
-}
+    }
+
+
+    function dragmove(d){
+        d3.select(this)
+          .attr("x", function(d) {
+              if ((d3.event.x > cfg.w * (1 - cfg.factor)) && (d3.event.x < cfg.w * cfg.factor - 10)) {
+                  x = d3.event.x;
+
+                  selectYear = parseInt(parseFloat(x - cfg.w * (1 - cfg.factor)) * yearnested_data.length /
+                                        parseFloat((cfg.w * cfg.factor) - (cfg.w * (1 - cfg.factor))))
+
+                  selectYear = yearnested_data[selectYear].key
+
+                  showselectYear(selectYear);
+              }
+              return x;
+          })
+    }
+
+    function dragend(d){
+        drawChart(selectYear)
+    }
 
 
 
-
-
-
-
-
-
-
-
-    function drawChart(year) {
-        var dd = [];
-        var ddd = [];
-        var year;
-
-//        for ( var i=0; i<sales_data.length; i++ ) {
-//            if (sales_data[i].Year.getFullYear() == 1991) {
-//                var item = {
-//                    rank: sales_data[i].Rank,
-//                    axis: sales_data[i].Genre,
-//                    value: sales_data[i].Global_Sales
-//                }
-//                dd.push(item)
-//            }
-//        }
-
-        for (var i=0; i<yearnested_data.length; i++ ) {
-            var y  = parseTime(yearnested_data[i].key);
-            var yy = parseTime(year);
-
-            var y1  = y.getFullYear() - 0;
-            var yy1 = yy.getFullYear() - 0;
-            if (y1 == yy1) {
-
-            var item = []
-
-                var yearsales = yearnested_data[i].values;
-                for (var j=0; j<genres.length; j++) {
-                    item = {
-                        axis: genres[j].axis,
-                        value: 0
-                    }
-
-                    for (var k=0; k<yearsales.length; k++)
-                        if (genres[j].axis == yearsales[k].key) {
-                            item.value = yearsales[k].value.total;
-                        }
-                    dd.push(item)
-                }
-                break;
-            }
-        }
-
-        ddd.push(dd)
-
-        console.log(dd)
-        console.log(dd.length)
-        console.log(ddd)
-
-        drawRadarChart("#chart", ddd);
-
-}
-
-
-
-    function drawRadarChart (id, d, options) {
-        var cfg = {
-            radius: 5,
-            w: 600,
-            h: 600,
-            factor: .95,
-            factorLegend: 1,
-            levels: 3,
-            maxValue: 0,
-            radians: 2 * Math.PI,
-            opacityArea: 0.5,
-            color: d3.scaleOrdinal(d3.schemeCategory10),
-            fontSize: 10
-        };
-
-        if ('undefined' !== typeof options) {
-            for (var i in options){
-                if ('undefined' !== typeof options[i]){
-                    cfg[i] = options[i];
-                }
-            }
-        }
-
-        cfg.maxValue = Math.max(cfg.maxValue, d3.max(d, function(i){return d3.max(i.map(function(o){return o.value;}))}));
-        var allAxis = (d[0].map(function(i, j){return i.axis}));
+    function drawRadar() {
+        var allAxis = (genres.map(function(i, j){return i.axis}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-        d3.select(id).select("svg").remove();
-        var g = d3.select(id).append("svg").attr("width", cfg.w).attr("height", cfg.h).append("g");
+        d3.select("#chart").select("svg").remove();
+        var g = d3.select("#chart").append("svg").attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
 
         var tooltip;
         function getPosition(i, range, factor, func){
@@ -247,20 +166,22 @@
         }
 
         // draw the circles
-        for (var j=0; j<cfg.levels; j++){
-            var levelFactor = radius*((j+1)/cfg.levels);
-            g.selectAll(".levels").data(allAxis).enter().append("svg:line")
-                                  .attr("x1", function(d, i){return getHorizontalPosition(i, levelFactor);})
-                                  .attr("y1", function(d, i){return getVerticalPosition(i, levelFactor);})
-                                  .attr("x2", function(d, i){return getHorizontalPosition(i+1, levelFactor);})
-                                  .attr("y2", function(d, i){return getVerticalPosition(i+1, levelFactor);})
-                                  .attr("class", "line")
-                                      .style("stroke", "grey")
-                                      .style("stroke-width", "0.5px")
-                                      .attr("transform", "translate(" + (cfg.w/2-levelFactor) + ", " + (cfg.h/2-levelFactor) + ")");
+        for (var j=1; j<=cfg.levels; j++){
+            var levelFactor = radius * (Math.sqrt(j) / Math.sqrt(cfg.levels));
+            g.selectAll(".levels")
+                .data(allAxis)
+                .enter()
+                .append("svg:line")
+                    .attr("x1", function(d, i){return getHorizontalPosition(i, levelFactor);})
+                    .attr("y1", function(d, i){return getVerticalPosition(i, levelFactor);})
+                    .attr("x2", function(d, i){return getHorizontalPosition(i+1, levelFactor);})
+                    .attr("y2", function(d, i){return getVerticalPosition(i+1, levelFactor);})
+                    .attr("class", "line")
+                    .style("stroke", "grey")
+                    .style("stroke-width", "0.3px")
+                    .attr("transform", "translate(" + (cfg.w/2-levelFactor) + ", " + (cfg.h/2-levelFactor) + ")");
         }
 
-        series = 0;
 
         // draw the axises
         var axis = g.selectAll(".axis").data(allAxis).enter().append("g").attr("class", "axis");
@@ -270,7 +191,7 @@
             .attr("y1", cfg.h/2)
             .attr("x2", function(j, i){return getHorizontalPosition(i, cfg.w/2, cfg.factor);})
             .attr("y2", function(j, i){return getVerticalPosition(i, cfg.h/2, cfg.factor);})
-            .attr("class", "line").style("stroke", "grey").style("stroke-width", "1px");
+            .attr("class", "line").style("stroke", "grey").style("stroke-width", "0.5px");
 
         // add legend of axis
         axis.append("text").attr("class", "legend")
@@ -285,44 +206,212 @@
             .attr("x", function(d, i){return getHorizontalPosition(i, cfg.w / 2, cfg.factorLegend);})
             .attr("y", function(d, i){return getVerticalPosition(i, cfg.h / 2, cfg.factorLegend);});
 
+        g.append("line")
+            .attr("x1", cfg.w * (1 - cfg.factor))
+            .attr("y1", cfg.h + 10)
+            .attr("x2", cfg.w * cfg.factor)
+            .attr("y2", cfg.h + 10)
+            .attr("class", "line")
+            .style("stroke", "black")
+            .style("stroke-width", "1px");
+
+        g.append("rect")
+            .attr("x", cfg.w * (1 - cfg.factor))
+            .attr("y", cfg.h + 5)
+            .attr("width", 20)
+            .attr("height", 10)
+            .attr("fill", "black")
+            .call(drag)
+
+        showselectYear(1980)
+    }
+
+
+    function showselectYear(year) {
+        var g = d3.select("#chart").select("svg");
+
+        var text = d3.select("#" + "TselectYear")
+        text.remove();
+
+        var rect = d3.select("#" + "RselectYear")
+        rect.remove();
+
+        g.append("rect")
+            .attr("id", "RselectYear")
+            .attr("x", cfg.w * (1 - cfg.factor))
+            .attr("y", cfg.h - 15)
+            .attr("width", 50)
+            .attr("height", 15)
+            .attr("stroke", "black")
+            .attr("stroke-width", 0.8)
+            .attr("fill", "white");
+
+        g.append("text")
+            .attr("id", "TselectYear")
+            .attr("x", cfg.w * (1 - cfg.factor) + 1)
+            .attr("y", cfg.h - 14)
+            .attr("font-size", 10)
+            .attr("dy", "1em")
+            .attr("fill", "SteelBlue")
+            .text(year.toString());
+    }
+
+
+
+    function drawChart(year) {
+        var chartData = [];
+
+        for (var i=0; i<yearnested_data.length; i++ ) {
+            if ((parseTime(yearnested_data[i].key).getFullYear() > parseTime(year).getFullYear() - 1) &&
+                (parseTime(yearnested_data[i].key).getFullYear() < parseTime(year).getFullYear() + 1)) {
+
+                var valueData = [];
+                var countData = [];
+                var AVEdata = [];
+
+                var yearsales = yearnested_data[i].values;
+                for (var j=0; j<genres.length; j++) {
+                    var valueItem = []
+                    var countItem = []
+                    var AVEitem = []
+
+                    valueItem = {
+                        axis: genres[j].axis,
+                        value: 0,
+                        year: yearnested_data[i].key
+                    }
+
+                    countItem = {
+                        axis: genres[j].axis,
+                        value: 0,
+                        year: yearnested_data[i].key
+                    }
+
+                    AVEitem = {
+                        axis: genres[j].axis,
+                        value: 0,
+                        year: yearnested_data[i].key
+                    }
+
+                    for (var k=0; k<yearsales.length; k++)
+                        if (genres[j].axis == yearsales[k].key) {
+                            valueItem.value = yearsales[k].value.total;
+                            countItem.value = yearsales[k].value.recorder.length;
+                            if (countItem.value != 0)
+                                AVEitem.value = valueItem.value / countItem.value;
+                            else
+                                AVEitem.value = 0;
+                        }
+                    valueData.push(valueItem)
+                    countData.push(countItem)
+                    AVEdata.push(AVEitem)
+                }
+                chartData.push(valueData);
+                chartData.push(countData);
+                chartData.push(AVEdata);
+            }
+        }
+
+        console.log(chartData)
+
+        drawRadarChart("#chart", chartData);
+
+    }
+
+
+
+    function drawRadarChart (id, d, options) {
+//        var cfg = {
+//            radius: 5,
+//            w: 600,
+//            h: 600,
+//            factor: .95,
+//            factorLegend: 1,
+//            levels: 3,
+//            maxValue: 0,
+//            radians: 2 * Math.PI,
+//            opacityArea: 0.5,
+//            color: d3.scaleOrdinal(d3.schemeCategory10),
+//            fontSize: 10
+//        };
+//
+//        if ('undefined' !== typeof options) {
+//            for (var i in options){
+//                if ('undefined' !== typeof options[i]){
+//                    cfg[i] = options[i];
+//                }
+//            }
+//        }
+//
+        cfg.maxValue = Math.max(0, d3.max(d, function(i){return d3.max(i.map(function(o){return  Math.sqrt(o.value);}))}));
+        var allAxis = (d[0].map(function(i, j){return i.axis}));
+        var total = allAxis.length;
+        var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
+        var g = d3.select(id).select("svg");
+        g.selectAll("polygon").remove();
+        g.selectAll("circle").remove();
+
+        var tooltip;
+        function getPosition(i, range, factor, func){
+            factor = typeof factor !== 'undefined' ? factor : 1;
+            return range * (1 - factor * func(i * cfg.radians / total));
+        }
+
+        function getHorizontalPosition(i, range, factor){
+            return getPosition(i, range, factor, Math.sin);
+        }
+
+        function getVerticalPosition(i, range, factor){
+            return getPosition(i, range, factor, Math.cos);
+        }
+
+        series = 0;
 
         // draw the polygon
         d.forEach(function(y, x){
             dataValues = [];
+
             g.selectAll(".nodes")
                 .data(y, function(j, i){
                     if (j.value != 0)
-                        dataValues.push([getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor),
-                                         getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor)
+                        dataValues.push([getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor),
+                                         getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor),
+                                         j.year
                                         ]);
                   });
 
             dataValues.push(dataValues[0]);
+
             g.selectAll(".area")
-             .data([dataValues])
-             .enter()
-             .append("polygon")
-             .attr("class", "radar-chart-serie"+series)
-             .style("stroke-width", "2px")
-             .style("stroke", cfg.color(series))
-             .attr("points",function(d) {
-                 var str="";
-                 for(var pti=0;pti<d.length;pti++){
-                     str=str+d[pti][0]+","+d[pti][1]+" ";
-                 }
-                 return str;
-              })
-             .style("fill", function(j, i){return cfg.color(series)})
-             .style("fill-opacity", cfg.opacityArea)
-             .on('mouseover', function (d){
-                 z = "polygon."+d3.select(this).attr("class");
-                 g.selectAll("polygon").transition(200).style("fill-opacity", 0.1);
-                 g.selectAll(z).transition(200).style("fill-opacity", .7);
-                 })
-             .on('mouseout', function(){
-                 g.selectAll("polygon").transition(200).style("fill-opacity", cfg.opacityArea);
-                 });
+               .data([dataValues])
+               .enter()
+               .append("polygon")
+               .attr("class", "radar-chart-serie" + series)
+               .style("stroke-width", "2px")
+               .style("stroke", cfg.color(series))
+               .attr("points",function(d) {
+                   var str="";
+                   for(var pti=0;pti<d.length;pti++){
+                       str=str+d[pti][0]+","+d[pti][1]+" ";
+                   }
+                   return str;
+                })
+               .style("fill", function(j, i){return cfg.color(series)})
+               .style("fill-opacity", cfg.opacityArea)
+               .on('mouseover', function (d){
+                   z = "polygon."+d3.select(this).attr("class");
+                   g.selectAll("polygon")
+                       .transition(200)
+                       .style("fill-opacity", 0.1);
+                   g.selectAll(z).transition(200).style("fill-opacity", .7);
+                   })
+               .on('mouseout', function(){
+                   g.selectAll("polygon")
+                       .transition(200)
+                       .style("fill-opacity", cfg.opacityArea);
+                   });
             series++;
+
         });
 
         series = 0;
@@ -330,48 +419,72 @@
         // draw all tne nodes
         d.forEach(function(y, x){
             g.selectAll(".nodes")
-             .data(y).enter()
-             .append("svg:circle").attr("class", "radar-chart-serie"+series)
-                                  .attr('r', cfg.radius)
-                                  .attr("alt", function(j){return Math.max(j.value, 0)})
-                                  .attr("cx", function(j, i){
-                                      if (j.value != 0) {
-                                          dataValues.push([
-                                              getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor),
-                                              getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max(j.value, 0))/cfg.maxValue)*cfg.factor)
-                                          ]);
-                                          return getHorizontalPosition(i, cfg.w/2, (Math.max(j.value, 0)/cfg.maxValue)*cfg.factor);
-                                      } else return -5;
-                                   })
-                                  .attr("cy", function(j, i){
-                                      if (j.value != 0)
-                                          return getVerticalPosition(i, cfg.h/2, (Math.max(j.value, 0)/cfg.maxValue)*cfg.factor);
-                                       else return -5;
-                                   })
-            .attr("data-id", function(j){return j.axis})
-            .style("fill", cfg.color(series)).style("fill-opacity", .9)
-            .on('mouseover', function (d){
-                newX = parseFloat(d3.select(this).attr('cx')) - 10;
-                newY = parseFloat(d3.select(this).attr('cy')) - 5;
-                tooltip.attr('x', newX).attr('y', newY).text(d.value).transition(200).style('opacity', 1);
-                z = "polygon."+d3.select(this).attr("class");
-                g.selectAll("polygon").transition(200).style("fill-opacity", 0.1);
-                g.selectAll(z).transition(200).style("fill-opacity", .7);
-             })
-            .on('mouseout', function(){
-                tooltip.transition(200).style('opacity', 0);
-                g.selectAll("polygon").transition(200).style("fill-opacity", cfg.opacityArea);
-             })
-            .append("svg:title");
-//            .text(function(j){return Math.max(j.value, 0)});
+                .data(y)
+                .enter()
+                .append("circle")
+                    .attr("class", "radar-chart-serie" + series)
+                    .attr('r', cfg.radius)
+                    .attr("alt", function(j){return Math.max( Math.sqrt(j.value), 0)})
+                    .attr("cx", function(j, i){
+                        if (j.value != 0) {
+                            dataValues.push([
+                                getHorizontalPosition(i, cfg.w/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor),
+                                getVerticalPosition(i, cfg.h/2, (parseFloat(Math.max( Math.sqrt(j.value), 0))/cfg.maxValue)*cfg.factor)
+                            ]);
+                            return getHorizontalPosition(i, cfg.w/2, (Math.max( Math.sqrt(j.value), 0)/cfg.maxValue)*cfg.factor);
+                        } else return -5;
+                    })
+                    .attr("cy", function(j, i){
+                         if (j.value != 0)
+                             return getVerticalPosition(i, cfg.h/2, (Math.max( Math.sqrt(j.value), 0)/cfg.maxValue)*cfg.factor);
+                         else
+                             return -5;
+                    })
+                    .attr("data-id", function(j){return j.axis})
+                    .style("fill", cfg.color(series))
+                    .style("fill-opacity", .9)
+                    .on('mouseover', function (d){
+                        newX = parseFloat(d3.select(this).attr('cx')) - 10;
+                        newY = parseFloat(d3.select(this).attr('cy')) - 5;
+                        tooltip.attr('x', newX)
+                               .attr('y', newY)
+                               .text(d3.format("." + d3.precisionFixed(0.01) + "f")(d.value))
+                               .transition(200).style('opacity', 1);
 
-          series++;
+                        z = "polygon." + d3.select(this).attr("class");
+                        g.selectAll("polygon")
+                            .transition(200)
+                            .style("fill-opacity", 0.1);
+                        g.selectAll(z)
+                            .transition(200)
+                            .style("fill-opacity", .7);
+                    })
+                    .on('mouseout', function(){
+                        tooltip.transition(200).style('opacity', 0);
+                        g.selectAll("polygon")
+                            .transition(200)
+                            .style("fill-opacity", cfg.opacityArea);
+                    });
+//                .append("svg:title")
+//                .text(function(j){return Math.max(j.value, 0)});
+            series++;
+
         });
 
         //Tooltip
         tooltip = g.append('text').style('opacity', 0).style('font-family', 'sans-serif').style('font-size', '13px');
     }
 
+
+    function showChart (year) {
+        var g = d3.select("#chart").select("svg");
+        g.selectAll("polygon")
+            .transition(200)
+            .style("fill-opacity", 0.1);
+        g.select("#radar-chart-serie" + year).transition(200).style("fill-opacity", .7);
+//        g.select("#radar-chart-serie" + year).style("fill-opacity", .7);
+
+    }
 
 
 </script>
