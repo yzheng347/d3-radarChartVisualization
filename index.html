@@ -8,15 +8,19 @@
 <table>
     <tr>
         <td>
-            <svg width="400" height="450" id="RadarChart" style="display: inline-block"></svg>
+            <svg width="600" height="600" id="RadarChart"></svg>
         </td>
         <td>
-            <svg width="1200" height="450" id="TreemapChart" style="display: inline-block"></svg>
+            <svg width="640" height="600" id="LineChart"></svg>
         </td>
     </tr>
+</table>
+<table>
     <tr>
         <td>
-            <svg width="1200" height="450" id="LineChart" style="display: inline-block"></svg>
+            <label><input type="radio" name="mode" value="sumBySize" checked> Size</label>
+            <label><input type="radio" name="mode" value="sumByCount"> Count</label>
+            <svg width="1200" height="250" id="TreemapChart"></svg>
         </td>
     </tr>
 </table>
@@ -31,14 +35,16 @@
 
     var parseTime = d3.timeParse("%Y");
 
-    var sales_data;
-    var genres = [];
-    var genrenested_data = [];
-    var yearnested_data = [];
+    var salesData;
+    var YearGenreNest = [];
+    var PublisherNest = [];
+    var LineChartData = []
+    var PublisherNest = [];
+    var treeData = [];
 
     var minYear;
     var maxYear;
-    var selectYear
+    var selectYear;
 
     var drag = d3.drag()
             .on("end", dragend)
@@ -47,8 +53,8 @@
 
         var cfg = {
             radius: 5,
-            w: 400,
-            h: 400,
+            w: 580,
+            h: 580,
             factor: .9,
             factorLegend: .95,
             levels: 3,
@@ -68,100 +74,138 @@
         if(error)
             console.log(error)
 
-        console.log(data)
+        salesData = data
 
-        sales_data = data
+        salesData = salesData.filter(function(d){
+                        if ((d.Year != "N/A") && (d.Year != "2017") && (d.Year != "2020"))
+                            return d.Year;
+                    })
 
-        sales_data = sales_data.filter(function(d){
-                      return d.Year != 'N/A';
-                  })
+        salesData.forEach(function(d){ d.Global_Sales = d.Global_Sales - 0; })
 
-        sales_data.forEach(function(d){ d.Global_Sales = d.Global_Sales - 0; })
+        console.log(salesData)
 
-        console.log(sales_data)
+        // radarchart data: year, genre nest data, ascending sorted
+        YearGenreNest = d3.nest()
+                          .key(function(d){return d['Year']})
+                          .sortKeys(d3.ascending)
+                          .rollup(function(d) {
+                              return {
+                                  recorder: d,
+                                  total: 0,
+                                  total: d3.sum(d, function(d) { return d.Global_Sales; }),
+                              };
+                          })
+                          .key(function(d){return d['Genre']})
+                          .sortKeys(d3.ascending)
+                          .entries(salesData)
 
-        // collect all the genres
-        genrenested_data = d3.nest()
-                    .key(function(d){return d['Genre']})
-                    .sortKeys(d3.ascending)
-                    .entries(sales_data)
+        console.log(salesData)
 
-        for ( var i=0; i<genrenested_data.length; i++ ) {
-            var item = {
-                axis: genrenested_data[i].key,
-                value: 0}
-            genres.push(item);
+        // Treemap data: year, publisher, genre nest data, sorted
+        PublisherNest = d3.nest()
+                          .key(function(d){return d['Year']})
+                          .sortKeys(d3.ascending)
+                          .key(function(d){return d['Genre']})
+                          .sortKeys(d3.ascending)
+                          .key(function(d){return d['Publisher']})
+                          .sortKeys(d3.ascending)
+                          .entries(salesData)
+
+        var treeItem = [];
+        PublisherNest.forEach(function(d) {
+            var yearItem = []
+
+            d.values.forEach(function(e) {
+                var genreItem = []
+                e.values.forEach(function(f) {
+                    var publisherItem = []
+                    f.values.forEach(function(g) {
+                        var item = {
+                            rank:      g.Rank,
+                            name:      g.Name,
+                            platform:  g.Platform,
+                            year:      g.Year,
+                            genre:     g.Genre,
+                            publisher: g.Publisher,
+                            size:      g.Global_Sales
+                        }
+                        publisherItem.push(item)
+                    })
+                    var publisherData = {
+                        children: publisherItem,
+                        name:     f.key
+                    }
+                    genreItem.push(publisherData)
+                })
+                var genreData = {
+                    children: genreItem,
+                    name:     e.key
+                }
+                yearItem.push(genreData)
+            })
+            var yearData = {
+                children: yearItem,
+                name:     d.key
+            }
+            treeItem.push(yearData)
+        })
+
+        treeData = {
+            children: treeItem,
+            name: "PublisherTree"
         }
 
-        yearnested_data = d3.nest()
-                    .key(function(d){return d['Year']})
-                    .sortKeys(d3.ascending)
-                    .rollup(function(d) { return {
-                        recorder: d,
-                        total: 0,
-                        total: d3.sum(d, function(d) { return d.Global_Sales; }),
-                        }; })
-                    .key(function(d){return d['Genre']})
-                    .sortKeys(d3.ascending)
-                    .entries(sales_data)
+        console.log(treeData)
 
-        console.log(yearnested_data)
+        // linechart data: genre, year nest data, ascending sorted
+        GenreYearNest = d3.nest()
+                      .key(function(d){return d['Genre']})
+                      .sortKeys(d3.ascending)
+                      .key(function(d){return d['Year']})
+                      .sortKeys(d3.ascending)
+                      .rollup(function(d) {
+                          return {
+                              recorder: d,
+                              total: d3.sum(d, function(d) { return d.Global_Sales; }),
+                          };
+                      })
+                      .entries(salesData)
 
-        minYear = yearnested_data[0].key;
-        maxYear = yearnested_data[yearnested_data.length - 1].key;
+        GenreYearNest.forEach(function(d) {
+            // for each genre
+            var yearItem = []
+            d.values.forEach(function(e) {
+                // for each year
+                var item = {
+                    date:  parseTime(e.key),
+                    total: e.value.total
+                }
+                yearItem.push(item)
+            })
+            var genreItem = {
+                values: yearItem,
+                id:     d.key
+            }
+            LineChartData.push(genreItem)
+        })
 
-        console.log(minYear)
-        console.log(maxYear)
+        console.log(LineChartData)
 
         drawRadar();
+        drawTreemap(treeData);
+        drawLineChart();
 
-        var select = d3.select("#Dropdown").append("select")
-
-        select.selectAll("option")
-              .data(yearnested_data)
-              .enter()
-              .append("option")
-                  .attr("value", function (d) { return d.key; })
-                  .text(function (d) { return d.key; });
-
-        select.on("change", function(d) {
-            var value = d3.select(this).property("value");
-            var index = d3.select(this).property("index");
-        });
-
-    }
-
-
-    function dragmove(d){
-        d3.select(this)
-          .attr("x", function(d) {
-              if ((d3.event.x > cfg.w * (1 - cfg.factor)) && (d3.event.x < cfg.w * cfg.factor - 10)) {
-                  x = d3.event.x;
-
-                  selectYear = parseInt(parseFloat(x - cfg.w * (1 - cfg.factor)) * yearnested_data.length /
-                                        parseFloat((cfg.w * cfg.factor) - (cfg.w * (1 - cfg.factor))))
-
-                  selectYear = yearnested_data[selectYear].key
-
-                  showselectYear(selectYear);
-              }
-              return x;
-          })
-    }
-
-    function dragend(d){
-        drawChart(selectYear)
     }
 
 
 
     function drawRadar() {
-        var allAxis = (genres.map(function(i, j){return i.axis}));
+        var allAxis = (LineChartData.map(function(i, j){return i.id}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-//        d3.select("#RadarChart").remove();
         var g = d3.select("#RadarChart");
-//        g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
+        g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
 
         var tooltip;
         function getPosition(i, range, factor, func){
@@ -238,6 +282,201 @@
         showselectYear(1980)
     }
 
+    function showTreemap(year, genre) {
+        var root = treeData;
+        treeData.children.forEach(function(d) {
+            if (d.name == year ) {
+                d.children.forEach(function(e) {
+                    if (e.name == genre) {
+                        root = e;
+                    }
+                })
+            }
+        })
+
+        drawTreemap(root);
+    }
+
+    function drawTreemap(treedata) {
+
+        var svg = d3.select("#TreemapChart"),
+            width = +svg.attr("width"),
+            height = +svg.attr("height") - 5;
+
+        svg.selectAll("g").remove();
+//        svg.selectAll("clipPath").remove();
+//        svg.selectAll("text").remove();
+
+        var x = d3.scaleLinear().range([0, width]),
+            y = d3.scaleLinear().range([0, height]),
+            color = d3.scaleOrdinal(d3.schemeCategory20),
+            format = d3.format(",d");
+
+        var treemap = d3.treemap()
+                        .tile(d3.treemapResquarify)
+                        .size([width, height])
+                        .round(false)
+                        .paddingInner(1);
+
+
+        var root = d3.hierarchy(treedata)
+                     .eachBefore(function(d) {
+                          d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name; })
+                     .sum(sumBySize)
+                     .sort(function(a, b) { return b.height - a.height || b.value - a.value; });
+
+        treemap(root);
+
+
+         var cell = svg.selectAll("g")
+                       .data(root.leaves())
+                       .enter().append("g")
+                       .attr("transform", function(d) { return "translate(" + d.x0 + "," + d.y0 + ")"; });
+
+        cell.append("rect")
+            .attr("id", function(d) { return d.data.id; })
+            .attr("width", function(d) { return d.x1 - d.x0; })
+            .attr("height", function(d) { return d.y1 - d.y0; })
+            .attr("fill", function(d) { return color(d.parent.data.id); });
+
+        cell.append("clipPath")
+            .attr("id", function(d) { return "clip-" + d.data.id; })
+            .append("use")
+            .attr("xlink:href", function(d) { return "#" + d.data.id; });
+
+        cell.append("text")
+            .attr("clip-path", function(d) { return "url(#clip-" + d.data.id + ")"; })
+            .selectAll("tspan")
+            .data(function(d) {
+                return (d.data.name + " " + d.data.size).split(/(?=[A-Z][^A-Z])/g);
+            })
+            .enter()
+            .append("tspan")
+            .attr("x", 4)
+            .attr("y", function(d, i) { return 13 + i * 10; })
+            .text(function(d) { return d; })
+            .style("font-family", "sans-serif").style("font-size", "11px");
+
+        cell.append("title")
+            .text(function(d) { return d.data.id + "\n" + d.value; });
+
+        d3.selectAll("input")
+          .data([sumBySize, sumByCount], function(d) { return d ? d.name : this.value; })
+          .on("change", changed);
+
+        d3.select(window).on("click", function() { zoom(root); });
+
+        function changed(sum) {
+
+            treemap(root.sum(sum));
+
+            cell.transition()
+                .duration(750)
+                .attr("transform", function(d) { return "translate(" + d.x0 + "," + d.y0 + ")"; })
+                .select("rect")
+                .attr("width", function(d) { return d.x1 - d.x0; })
+                .attr("height", function(d) { return d.y1 - d.y0; });
+        }
+
+    }
+
+    function sumByCount(d) {
+        return d.children ? 0 : 1;
+    }
+
+    function sumBySize(d) {
+        return d.size;
+    }
+
+    function drawLineChart() {
+
+        var svg = d3.select("#LineChart"),
+            margin = {top: 20, right: 80, bottom: 30, left: 50},
+            width = svg.attr("width") - margin.left - margin.right,
+            height = svg.attr("height") - margin.top - margin.bottom,
+            g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scaleTime().range([0, width]),
+            y = d3.scaleLinear().range([height, 0]),
+            z = d3.scaleOrdinal(d3.schemeCategory20);
+
+        var line = d3.line()
+                     .curve(d3.curveBasis)
+                     .x(function(d) { return x(d.date); })
+                     .y(function(d) { return y(d.total); });
+
+        x.domain(d3.extent(salesData, function(d) { return parseTime(d.Year); }));
+
+        y.domain([d3.min(LineChartData, function(c) {
+                      return d3.min(c.values, function(d) { return d.total; }); }),
+                  d3.max(LineChartData, function(c) {
+                      return d3.max(c.values, function(d) { return d.total; }); })
+        ]);
+
+        z.domain(LineChartData.map(function(c) { return c.id; }));
+
+        g.append("g")
+         .attr("class", "axis axis--x")
+         .attr("transform", "translate(0," + height + ")")
+         .call(d3.axisBottom(x));
+
+        g.append("g")
+         .attr("class", "axis axis--y")
+         .call(d3.axisLeft(y))
+         .append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("y", 6)
+         .attr("dy", "0.71em")
+         .attr("fill", "#000")
+         .text("Total Global_Sales");
+
+        var genre = g.selectAll(".genre")
+                     .data(LineChartData)
+                     .enter()
+                     .append("g")
+                     .attr("class", "genre");
+
+        genre.append("path")
+             .attr("class", "line")
+             .attr("d", function(d) { return line(d.values); })
+             .style("stroke", function(d) { return z(d.id); })
+             .style("stroke-width", "1.5px")
+             .style("fill", "none");
+
+        genre.append("text")
+             .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
+             .attr("transform", function(d) {
+                 return "translate(" + x(d.value.date) + "," + y(d.value.total) + ")";
+             })
+             .attr("x", 3)
+             .attr("dy", "0.35em")
+             .style("font", "10px sans-serif")
+             .text(function(d) { return d.id; })
+             .style("stroke", function(d) { return z(d.id); })
+
+    }
+
+    function dragmove(d){
+        d3.select(this)
+          .attr("x", function(d) {
+              if ((d3.event.x > cfg.w * (1 - cfg.factor)) && (d3.event.x < cfg.w * cfg.factor - 10)) {
+                  x = d3.event.x;
+
+                  selectYear = parseInt(parseFloat(x - cfg.w * (1 - cfg.factor)) *YearGenreNest.length /
+                                        parseFloat((cfg.w * cfg.factor) - (cfg.w * (1 - cfg.factor))))
+
+                  selectYear = YearGenreNest[selectYear].key
+
+                  showselectYear(selectYear);
+              }
+              return x;
+          })
+    }
+
+    function dragend(d){
+        drawChart(selectYear)
+    }
+
 
     function showselectYear(year) {
         var g = d3.select("#RadarChart");
@@ -273,56 +512,38 @@
     function drawChart(year) {
         var chartData = [];
 
-        for (var i=0; i<yearnested_data.length; i++ ) {
-            if ((parseTime(yearnested_data[i].key).getFullYear() > parseTime(year).getFullYear() - 1) &&
-                (parseTime(yearnested_data[i].key).getFullYear() < parseTime(year).getFullYear() + 1)) {
-
+        YearGenreNest.forEach(function(d) {
+            if (parseTime(d.key).getFullYear() == parseTime(year).getFullYear()) {
                 var valueData = [];
                 var countData = [];
                 var AVEdata = [];
 
-                var yearsales = yearnested_data[i].values;
-                for (var j=0; j<genres.length; j++) {
-                    var valueItem = []
-                    var countItem = []
-                    var AVEitem = []
+                var genres = (LineChartData.map(function(i, j){return i.id}));
+                genres.forEach(function(e) {
+                    valueItem = {axis: e, value: 0, year: d.key}
+                    countItem = {axis: e, value: 0, year: d.key}
+                    AVEitem =   {axis: e, value: 0, year: d.key}
 
-                    valueItem = {
-                        axis: genres[j].axis,
-                        value: 0,
-                        year: yearnested_data[i].key
-                    }
-
-                    countItem = {
-                        axis: genres[j].axis,
-                        value: 0,
-                        year: yearnested_data[i].key
-                    }
-
-                    AVEitem = {
-                        axis: genres[j].axis,
-                        value: 0,
-                        year: yearnested_data[i].key
-                    }
-
-                    for (var k=0; k<yearsales.length; k++)
-                        if (genres[j].axis == yearsales[k].key) {
-                            valueItem.value = yearsales[k].value.total;
-                            countItem.value = yearsales[k].value.recorder.length;
+                    d.values.forEach(function(f) {
+                        if (f.key == e) {
+                            valueItem.value = f.value.total;
+                            countItem.value = f.value.recorder.length;
                             if (countItem.value != 0)
                                 AVEitem.value = valueItem.value / countItem.value;
                             else
                                 AVEitem.value = 0;
                         }
+                    })
                     valueData.push(valueItem)
                     countData.push(countItem)
                     AVEdata.push(AVEitem)
-                }
+
+                })
                 chartData.push(valueData);
                 chartData.push(countData);
                 chartData.push(AVEdata);
             }
-        }
+        })
 
         console.log(chartData)
 
@@ -333,28 +554,7 @@
 
 
     function drawRadarChart (id, d, options) {
-//        var cfg = {
-//            radius: 5,
-//            w: 600,
-//            h: 600,
-//            factor: .95,
-//            factorLegend: 1,
-//            levels: 3,
-//            maxValue: 0,
-//            radians: 2 * Math.PI,
-//            opacityArea: 0.5,
-//            color: d3.scaleOrdinal(d3.schemeCategory10),
-//            fontSize: 10
-//        };
-//
-//        if ('undefined' !== typeof options) {
-//            for (var i in options){
-//                if ('undefined' !== typeof options[i]){
-//                    cfg[i] = options[i];
-//                }
-//            }
-//        }
-//
+
         cfg.maxValue = Math.max(0, d3.max(d, function(i){return d3.max(i.map(function(o){return  Math.sqrt(o.value);}))}));
         var allAxis = (d[0].map(function(i, j){return i.axis}));
         var total = allAxis.length;
@@ -480,9 +680,13 @@
                         g.selectAll("polygon")
                             .transition(200)
                             .style("fill-opacity", cfg.opacityArea);
+                    })
+                    .on('click', function(d){
+                        year  = d.year;
+                        genre = d.axis;
+
+                        showTreemap(year, genre);
                     });
-//                .append("svg:title")
-//                .text(function(j){return Math.max(j.value, 0)});
             series++;
 
         });
