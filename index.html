@@ -1,9 +1,13 @@
-<!DOCTYPE radio chart >
-<html >
+<!DOCTYPE radio chart>
+<html>
+<head>
+	<title>Video Game Sales Visualization</title>
+</head>
 <body>
 
 <noscript><div id="noscript">You need JavaScript enabled to view most of the demos!</div></noscript>
 
+<h1><font face="WildWest" size="10">Video Game Sales Visualization</font><br /></h1>
 
 <table>
     <tr>
@@ -11,8 +15,8 @@
             <svg width="600" height="600" id="RadarChart"></svg>
         </td>
         <td>
-          <label><input type="radio" name="mode" value="sumBySize" checked> Size</label>
-          <label><input type="radio" name="mode" value="sumByCount"> Count</label>
+          <label><input type="radio" name="mode" value="sumBySize" checked> Sales</label>
+          <label><input type="radio" name="mode" value="sumByCount"> Number</label>
           <svg width="850" height="600" id="TreemapChart"></svg>
 
         </td>
@@ -20,9 +24,13 @@
 </table>
 <table>
     <tr>
-        <td>
-            <svg width="1550" height="600" id="LineChart"></svg>
-        </td>
+        <tr>
+            <svg width="1600" height="600" id="LineChart"></svg>
+        </tr>
+        <tr>
+            <button onclick="javascript:YzoomIn();">zoomIn Y</button>
+            <button onclick="javascript:YzoomOut();">zoomOut Y</button>
+        </tr>
     </tr>
 </table>
 
@@ -61,7 +69,7 @@
             levels: 3,
             maxValue: 0,
             radians: 2 * Math.PI,
-            opacityArea: .5,
+            opacityArea: .7,
             color: d3.scaleOrdinal(d3.schemeCategory20),
             fontSize: 10
         };
@@ -205,8 +213,11 @@
         var allAxis = (LineChartData.map(function(i, j){return i.id}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-        var g = d3.select("#RadarChart");
-        g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
+        // var g = d3.select("#RadarChart");
+        // g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
+
+        d3.select("#RadarChart").select("svg").remove();
+        var g = d3.select("#RadarChart").append("svg").attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
 
         var tooltip;
         function getPosition(i, range, factor, func){
@@ -250,7 +261,7 @@
             .attr("y2", function(j, i){return getVerticalPosition(i, cfg.h/2, cfg.factor);})
             .attr("class", "line").style("stroke", "grey").style("stroke-width", "0.5px");
 
-        // add legend of axis
+        //add legend of axis
         axis.append("text").attr("class", "legend")
             .text(function(d){return d})
             .style("font-family", "sans-serif").style("font-size", cfg.fontSize + "px")
@@ -362,10 +373,9 @@
             .text(function(d) { return d.data.id + "\n" + d.value; });
 
         d3.selectAll("input")
-          .data([sumBySize, sumByCount], function(d) { return d ? d.name : this.value; })
+          .data([sumBySize, sumByCount], function(d) {
+              return d ? d.name : this.value; })
           .on("change", changed);
-
-        d3.select(window).on("click", function() { zoom(root); });
 
         function changed(sum) {
 
@@ -389,6 +399,14 @@
         return d.size;
     }
 
+    var x;
+    var y;
+
+    var line = d3.line()
+                 .curve(d3.curveBasis)
+                 .x(function(d) { return x(d.date); })
+                 .y(function(d) { return y(d.total); });
+
     function drawLineChart() {
 
         var svg = d3.select("#LineChart"),
@@ -397,14 +415,11 @@
             height = svg.attr("height") - margin.top - margin.bottom,
             g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        var x = d3.scaleTime().range([0, width]),
-            y = d3.scaleLinear().range([height, 0]),
-            z = d3.scaleOrdinal(d3.schemeCategory20);
+        x = d3.scaleTime().range([0, width]),
+        y = d3.scaleLinear().range([height, 0])
 
-        var line = d3.line()
-                     .curve(d3.curveBasis)
-                     .x(function(d) { return x(d.date); })
-                     .y(function(d) { return y(d.total); });
+        var z = d3.scaleOrdinal(d3.schemeCategory20);
+
 
         x.domain(d3.extent(salesData, function(d) { return parseTime(d.Year); }));
 
@@ -422,6 +437,7 @@
          .call(d3.axisBottom(x));
 
         g.append("g")
+         .attr("id", "axis--y")
          .attr("class", "axis axis--y")
          .call(d3.axisLeft(y))
          .append("text")
@@ -438,6 +454,7 @@
                      .attr("class", "genre");
 
         genre.append("path")
+             .attr("id", function(d) { return "pathline" + d.id; })
              .attr("class", "line")
              .attr("d", function(d) { return line(d.values); })
              .style("stroke", function(d) { return z(d.id); })
@@ -446,6 +463,7 @@
 
         genre.append("text")
              .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
+             .attr("id", function(d) { return "pathtext" + d.id; })
              .attr("transform", function(d) {
                  return "translate(" + x(d.value.date) + "," + y(d.value.total) + ")";
              })
@@ -455,21 +473,75 @@
              .text(function(d) { return d.id; })
              .style("stroke", function(d) { return z(d.id); })
 
+             var i = 0;
+             LineChartData.forEach(function (d) {
+               g.append("text")
+              .attr("id", "TselectYear")
+              .attr("x", 50)
+              .attr("y", i * 15)
+              .attr("font", "10px sans-serif")
+              .attr("dy", "1em")
+              .attr("fill", z(d.id))
+              .text(d.id);
+          i++;
+      })
+    }
+
+    var factor = 1;
+
+
+    function YzoomIn() {
+        factor = factor / 2;
+        updataLines();
+    }
+
+
+    function YzoomOut() {
+        factor = factor * 2;
+        updataLines();
+    }
+
+
+    function updataLines() {
+        y.domain([d3.min(LineChartData, function(c) {
+                      return d3.min(c.values, function(d) { return d.total; }); }) * factor,
+                  d3.max(LineChartData, function(c) {
+                      return d3.max(c.values, function(d) { return d.total; }); }) * factor
+        ]);
+
+        d3.select('#axis--y')
+          .transition().duration(1000)
+          .call(d3.axisLeft(y))
+
+        LineChartData.forEach(function(d) {
+            d3.selectAll("#pathline" + d.id)
+              .transition().duration(1000)
+              .attr('d', function(d) { return line(d.values); })
+
+            d3.selectAll("#pathtext" + d.id)
+              .transition().duration(1000)
+              .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.total) + ")"; })
+        })
     }
 
     function dragmove(d){
+        var x;
+        console.log(d3.event.x)
         d3.select(this)
           .attr("x", function(d) {
-              if ((d3.event.x > cfg.w * (1 - cfg.factor)) && (d3.event.x < cfg.w * cfg.factor - 10)) {
-                  x = d3.event.x;
+              if (d3.event.x <= cfg.w * (1 - cfg.factor))
+                  x = cfg.w * (1 - cfg.factor) + 1;
+              else if (d3.event.x >= cfg.w * cfg.factor - 10)
+                  x = cfg.w * cfg.factor - 10 - 1;
+              else
+                  var x = d3.event.x;
 
-                  selectYear = parseInt(parseFloat(x - cfg.w * (1 - cfg.factor)) *YearGenreNest.length /
-                                        parseFloat((cfg.w * cfg.factor) - (cfg.w * (1 - cfg.factor))))
+              selectYear = parseInt(parseFloat(x - cfg.w * (1 - cfg.factor)) *YearGenreNest.length /
+                                    parseFloat((cfg.w * cfg.factor) - (cfg.w * (1 - cfg.factor))))
 
-                  selectYear = YearGenreNest[selectYear].key
+              selectYear = YearGenreNest[selectYear].key
 
-                  showselectYear(selectYear);
-              }
+              showselectYear(selectYear);
               return x;
           })
     }
@@ -511,7 +583,9 @@
 
 
     function drawChart(year) {
-        var chartData = [];
+      chartData.pop();
+      chartData.pop();
+      chartData.pop();
 
         YearGenreNest.forEach(function(d) {
             if (parseTime(d.key).getFullYear() == parseTime(year).getFullYear()) {
@@ -560,8 +634,9 @@
         var allAxis = (d[0].map(function(i, j){return i.axis}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-        var g = d3.select(id);
-        g.selectAll("polygon").remove();
+        var g = d3.select("#RadarChart").select("svg");
+        var p = g.selectAll("polygon");
+        p.remove();
         g.selectAll("circle").remove();
 
         var tooltip;
@@ -600,6 +675,7 @@
             g.selectAll(".area")
                .data([dataValues])
                .enter()
+               .attr("id", "radar-polygon")
                .append("polygon")
                .attr("class", "radar-chart-serie" + series)
                .style("stroke-width", "2px")
@@ -618,7 +694,7 @@
                    g.selectAll("polygon")
                        .transition(200)
                        .style("fill-opacity", 0.1);
-                   g.selectAll(z).transition(200).style("fill-opacity", .7);
+                   g.selectAll(z).transition(200).style("fill-opacity", 0.7);
                    })
                .on('mouseout', function(){
                    g.selectAll("polygon")
@@ -639,6 +715,7 @@
                 .data(y)
                 .enter()
                 .append("circle")
+                    .attr("id", "radar-circle")
                     .attr("class", "radar-chart-serie" + series)
                     .attr('r', cfg.radius)
                     .attr("alt", function(j){return Math.max( Math.sqrt(j.value), 0)})
