@@ -1,36 +1,42 @@
 <!DOCTYPE radio chart>
 <html>
-<head>
-	<title>Video Game Sales Visualization</title>
-</head>
 <body>
 
 <noscript><div id="noscript">You need JavaScript enabled to view most of the demos!</div></noscript>
 
-<h1><font face="WildWest" size="10">Video Game Sales Visualization</font><br /></h1>
+
+<h1 align="center"><font face="WildWest" size="7">Video Game Sales Visualization</font><br /></h1>
+
+<hr>
 
 <table>
-    <tr>
         <td>
-            <svg width="600" height="600" id="RadarChart"></svg>
+            <svg width="500" height="500" id="RadarChart"></svg>
         </td>
-        <td>
-          <label><input type="radio" name="mode" value="sumBySize" checked> Sales</label>
-          <label><input type="radio" name="mode" value="sumByCount"> Number</label>
-          <svg width="850" height="600" id="TreemapChart"></svg>
-
-        </td>
-    </tr>
+        <td align="left">
+            <table>
+            <tr>
+                <svg width="1000" height="475" id="TreemapChart"></svg>
+            </tr>
+            <tr>
+                <div id="radio">
+                    <label><input type="radio" name="mode" value="sumBySize" checked> Size</label>
+                    <label><input type="radio" name="mode" value="sumByCount"> Count</label>
+                </div>
+            </tr>
+          </table>
+       </td>
 </table>
-<table>
+<hr>
+<table">
     <tr>
-        <tr>
-            <svg width="1600" height="600" id="LineChart"></svg>
-        </tr>
-        <tr>
+        <div id="button">
             <button onclick="javascript:YzoomIn();">zoomIn Y</button>
             <button onclick="javascript:YzoomOut();">zoomOut Y</button>
-        </tr>
+        </div>
+    </tr>
+    <tr>
+        <svg width="1500" height="400" id="LineChart"></svg>
     </tr>
 </table>
 
@@ -50,6 +56,7 @@
     var LineChartData = []
     var PublisherNest = [];
     var treeData = [];
+    var chartData = [];
 
     var minYear;
     var maxYear;
@@ -61,15 +68,15 @@
 
 
         var cfg = {
-            radius: 5,
-            w: 580,
-            h: 580,
-            factor: .9,
+            radius: 7,
+            w: 480,
+            h: 480,
+            factor: .95,
             factorLegend: .95,
             levels: 3,
             maxValue: 0,
             radians: 2 * Math.PI,
-            opacityArea: .7,
+            opacityArea: .5,
             color: d3.scaleOrdinal(d3.schemeCategory20),
             fontSize: 10
         };
@@ -92,6 +99,7 @@
 
         salesData.forEach(function(d){ d.Global_Sales = d.Global_Sales - 0; })
 
+        console.log("salesData")
         console.log(salesData)
 
         // radarchart data: year, genre nest data, ascending sorted
@@ -109,7 +117,8 @@
                           .sortKeys(d3.ascending)
                           .entries(salesData)
 
-        console.log(salesData)
+        console.log("YearGenreNest")
+        console.log(YearGenreNest)
 
         // Treemap data: year, publisher, genre nest data, sorted
         PublisherNest = d3.nest()
@@ -165,6 +174,7 @@
             name: "PublisherTree"
         }
 
+        console.log("treeData")
         console.log(treeData)
 
         // linechart data: genre, year nest data, ascending sorted
@@ -199,10 +209,11 @@
             LineChartData.push(genreItem)
         })
 
+        console.log("LineChartData")
         console.log(LineChartData)
 
         drawRadar();
-        drawTreemap(treeData);
+        drawTreemap(treeData, 0);
         drawLineChart();
 
     }
@@ -213,8 +224,8 @@
         var allAxis = (LineChartData.map(function(i, j){return i.id}));
         var total = allAxis.length;
         var radius = cfg.factor * Math.min(cfg.w/2, cfg.h/2);
-        // var g = d3.select("#RadarChart");
-        // g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
+//        var g = d3.select("#RadarChart").select("svg");
+//        g.attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
 
         d3.select("#RadarChart").select("svg").remove();
         var g = d3.select("#RadarChart").append("svg").attr("width", cfg.w).attr("height", cfg.h + 50).append("g");
@@ -261,7 +272,7 @@
             .attr("y2", function(j, i){return getVerticalPosition(i, cfg.h/2, cfg.factor);})
             .attr("class", "line").style("stroke", "grey").style("stroke-width", "0.5px");
 
-        //add legend of axis
+        // add legend of axis
         axis.append("text").attr("class", "legend")
             .text(function(d){return d})
             .style("font-family", "sans-serif").style("font-size", cfg.fontSize + "px")
@@ -306,18 +317,34 @@
             }
         })
 
-        drawTreemap(root);
+        drawTreemap(root, year);
     }
 
-    function drawTreemap(treedata) {
+    function drawTreemap(treedata, year) {
 
         var svg = d3.select("#TreemapChart"),
             width = +svg.attr("width"),
-            height = +svg.attr("height") - 5;
+            height = +svg.attr("height") - 40;
 
         svg.selectAll("g").remove();
-//        svg.selectAll("clipPath").remove();
-//        svg.selectAll("text").remove();
+        svg.selectAll("#TreempChartTitle").remove();
+
+        var chartTitle;
+        if (year == 0) {
+            height = +svg.attr("height");
+        }
+        else {
+            chartTitle = "Genre Treemap: " + year + ", " + treedata.name
+        }
+
+        svg.append("text")
+            .attr("id", "TreempChartTitle")
+            .attr("x", 5)
+            .attr("y", height+5)
+            .attr("font-size", 20)
+            .attr("dy", "1em")
+            .attr("fill", "SteelBlue")
+            .text(chartTitle);
 
         var x = d3.scaleLinear().range([0, width]),
             y = d3.scaleLinear().range([0, height]),
@@ -330,20 +357,25 @@
                         .round(false)
                         .paddingInner(1);
 
-
         var root = d3.hierarchy(treedata)
                      .eachBefore(function(d) {
                           d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name; })
                      .sum(sumBySize)
                      .sort(function(a, b) { return b.height - a.height || b.value - a.value; });
 
-        treemap(root);
+        var mode = document.getElementsByName("mode");
+        if (mode[0].checked == true)
+            treemap(root.sum(sumBySize));
+        else
+            treemap(root.sum(sumByCount));
 
+        console.log("root")
+        console.log(root)
 
-         var cell = svg.selectAll("g")
-                       .data(root.leaves())
-                       .enter().append("g")
-                       .attr("transform", function(d) { return "translate(" + d.x0 + "," + d.y0 + ")"; });
+        var cell = svg.selectAll("g")
+                      .data(root.leaves())
+                      .enter().append("g")
+                      .attr("transform", function(d) { return "translate(" + d.x0 + "," + d.y0 + ")"; });
 
         cell.append("rect")
             .attr("id", function(d) { return d.data.id; })
@@ -370,7 +402,7 @@
             .style("font-family", "sans-serif").style("font-size", "11px");
 
         cell.append("title")
-            .text(function(d) { return d.data.id + "\n" + d.value; });
+            .text(function(d) { return d.data.id + "\n" + "Global Sale: " + d.data.size + "\n" + "Platform: " + d.data.platform; });
 
         d3.selectAll("input")
           .data([sumBySize, sumByCount], function(d) {
@@ -420,7 +452,6 @@
 
         var z = d3.scaleOrdinal(d3.schemeCategory20);
 
-
         x.domain(d3.extent(salesData, function(d) { return parseTime(d.Year); }));
 
         y.domain([d3.min(LineChartData, function(c) {
@@ -431,14 +462,23 @@
 
         z.domain(LineChartData.map(function(c) { return c.id; }));
 
+        g.append("text")
+            .attr("id", "LineChartTitle")
+            .attr("x", width/4)
+            .attr("y", 0)
+            .attr("font-size", 30)
+            .attr("dy", "1em")
+            .attr("fill", "SteelBlue")
+            .text("1980 - 2015 Video Game Genre Sales");
+
         g.append("g")
-         .attr("class", "axis axis--x")
+         .attr("class", "axis--x")
          .attr("transform", "translate(0," + height + ")")
          .call(d3.axisBottom(x));
 
         g.append("g")
          .attr("id", "axis--y")
-         .attr("class", "axis axis--y")
+         .attr("class", "axis--y")
          .call(d3.axisLeft(y))
          .append("text")
          .attr("transform", "rotate(-90)")
@@ -458,34 +498,33 @@
              .attr("class", "line")
              .attr("d", function(d) { return line(d.values); })
              .style("stroke", function(d) { return z(d.id); })
-             .style("stroke-width", "1.5px")
+             .style("stroke-width", "2.5px")
              .style("fill", "none");
 
-        genre.append("text")
-             .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
-             .attr("id", function(d) { return "pathtext" + d.id; })
-             .attr("transform", function(d) {
-                 return "translate(" + x(d.value.date) + "," + y(d.value.total) + ")";
-             })
-             .attr("x", 3)
-             .attr("dy", "0.35em")
-             .style("font", "10px sans-serif")
-             .text(function(d) { return d.id; })
-             .style("stroke", function(d) { return z(d.id); })
+        var i = 0;
+        LineChartData.forEach(function (d) {
 
-             var i = 0;
-             LineChartData.forEach(function (d) {
-               g.append("text")
-              .attr("id", "TselectYear")
-              .attr("x", 50)
-              .attr("y", i * 15)
-              .attr("font", "10px sans-serif")
-              .attr("dy", "1em")
-              .attr("fill", z(d.id))
-              .text(d.id);
-          i++;
-      })
+            g.append("circle")
+                .attr("id", "pathcircle" +  d.id)
+                .attr('r', 5)
+                .attr("cx", 43)
+                .attr("cy", 1 + i * 12)
+                .style("fill", z(d.id));
+
+            g.append("text")
+                .attr("id", "pathtext" + d.id)
+                .attr("x", 50)
+                .attr("y", 5 + i * 12)
+                .attr("font-family", "sans-serif")
+                .attr("font-size", 11)
+                .attr("font-weight", "bolder")
+                .attr("fill", z(d.id))
+                .text(d.id);
+            i++;
+        })
+
     }
+
 
     var factor = 1;
 
@@ -518,15 +557,13 @@
               .transition().duration(1000)
               .attr('d', function(d) { return line(d.values); })
 
-            d3.selectAll("#pathtext" + d.id)
-              .transition().duration(1000)
-              .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.total) + ")"; })
         })
     }
 
+
     function dragmove(d){
         var x;
-        console.log(d3.event.x)
+
         d3.select(this)
           .attr("x", function(d) {
               if (d3.event.x <= cfg.w * (1 - cfg.factor))
@@ -552,7 +589,7 @@
 
 
     function showselectYear(year) {
-        var g = d3.select("#RadarChart");
+        var g = d3.select("#RadarChart").select("svg");
 
         var text = d3.select("#" + "TselectYear")
         text.remove();
@@ -563,18 +600,18 @@
         g.append("rect")
             .attr("id", "RselectYear")
             .attr("x", cfg.w * (1 - cfg.factor))
-            .attr("y", cfg.h - 15)
+            .attr("y", cfg.h - 21)
             .attr("width", 50)
-            .attr("height", 15)
+            .attr("height", 20)
             .attr("stroke", "black")
             .attr("stroke-width", 0.8)
             .attr("fill", "white");
 
         g.append("text")
             .attr("id", "TselectYear")
-            .attr("x", cfg.w * (1 - cfg.factor) + 1)
-            .attr("y", cfg.h - 14)
-            .attr("font-size", 10)
+            .attr("x", cfg.w * (1 - cfg.factor) + 5)
+            .attr("y", cfg.h - 20)
+            .attr("font-size", 15)
             .attr("dy", "1em")
             .attr("fill", "SteelBlue")
             .text(year.toString());
@@ -583,9 +620,9 @@
 
 
     function drawChart(year) {
-      chartData.pop();
-      chartData.pop();
-      chartData.pop();
+        chartData.pop();
+        chartData.pop();
+        chartData.pop();
 
         YearGenreNest.forEach(function(d) {
             if (parseTime(d.key).getFullYear() == parseTime(year).getFullYear()) {
@@ -615,11 +652,12 @@
 
                 })
                 chartData.push(valueData);
-                //chartData.push(countData);
-                //chartData.push(AVEdata);
+//                chartData.push(countData);
+//                chartData.push(AVEdata);
             }
         })
 
+        console.log("radarchartData")
         console.log(chartData)
 
         drawRadarChart("#RadarChart", chartData);
@@ -629,7 +667,6 @@
 
 
     function drawRadarChart (id, d, options) {
-
         cfg.maxValue = Math.max(0, d3.max(d, function(i){return d3.max(i.map(function(o){return  Math.sqrt(o.value);}))}));
         var allAxis = (d[0].map(function(i, j){return i.axis}));
         var total = allAxis.length;
@@ -675,8 +712,8 @@
             g.selectAll(".area")
                .data([dataValues])
                .enter()
-               .attr("id", "radar-polygon")
                .append("polygon")
+               .attr("id", "radar-polygon")
                .attr("class", "radar-chart-serie" + series)
                .style("stroke-width", "2px")
                .style("stroke", cfg.color(series))
@@ -694,7 +731,7 @@
                    g.selectAll("polygon")
                        .transition(200)
                        .style("fill-opacity", 0.1);
-                   g.selectAll(z).transition(200).style("fill-opacity", 0.7);
+                   g.selectAll(z).transition(200).style("fill-opacity", .7);
                    })
                .on('mouseout', function(){
                    g.selectAll("polygon")
@@ -735,7 +772,12 @@
                              return -5;
                     })
                     .attr("data-id", function(j){return j.axis})
-                    .style("fill", cfg.color(series))
+                    .style("fill", function(j){
+                        for (i = 0; i< allAxis.length; i++)
+                            if (allAxis[i] == j.axis)
+                                break;
+                        return cfg.color(i);
+                    })
                     .style("fill-opacity", .9)
                     .on('mouseover', function (d){
                         newX = parseFloat(d3.select(this).attr('cx')) - 10;
