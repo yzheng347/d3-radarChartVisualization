@@ -15,3 +15,6 @@
 * The dataset was collected by sales data from  http://www.vgchartz.com/gamedb/
 * Moreover, this dataset was collected during the year of 2016, the data in year 2016 is incomplete, and therefore omitted from the visualization.
 
+
+
+A short video introduction: https://youtu.be/6BFOMD7ORPw
