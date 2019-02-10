@@ -1,5 +1,5 @@
 # Video Game Sales Visualization
-This is an ongoing data visualization project aims to create a tool for anyone who is interested in visualizing and consuming video game sales data. I also used interaction techniques that allow people to intuitively explore the dataset.
+This is a class project from Georgia Tech aims to create a tool for visualizing and consuming video game sales data. The objective of this project is to learn and use interaction techniques learnt from classroom to allow people to intuitively explore the dataset.
 
 
 ### Vis Description:
